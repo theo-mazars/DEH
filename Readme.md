@@ -1,0 +1,3 @@
+# DEH - Discord Bot
+
+Readme will be available soon...

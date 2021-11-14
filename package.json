@@ -1,0 +1,25 @@
+{
+  "name": "deh",
+  "version": "0.1.0",
+  "description": "Discord Event Helper",
+  "main": "index.js",
+  "repository": "production@theomazars.com:/home/production/discord/deh",
+  "author": "Theo <me@theomazars.com>",
+  "license": "GPL",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@discordjs/builders": "^0.6.0",
+    "@discordjs/rest": "^0.1.0-canary.0",
+    "@prisma/client": "^3.4.2",
+    "axios": "^0.23.0",
+    "discord-api-types": "^0.24.0",
+    "discord.js": "^13.3.1",
+    "dotenv": "^10.0.0",
+    "node-cron": "^3.0.0"
+  },
+  "scripts": {
+    "start": "NODE_ENV=production node --experimental-json-modules index.js",
+    "dev": "NODE_ENV=development nodemon --experimental-json-modules index.js"
+  }
+}

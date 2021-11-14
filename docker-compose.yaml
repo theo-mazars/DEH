@@ -1,0 +1,30 @@
+version: "3.3"
+services:
+  bot:
+    build: .
+    image: deh
+    env_file:
+      - bot.env
+    networks:
+      - dehtwork
+    depends_on:
+      - "database"
+    restart: unless-stopped
+  database:
+    image: postgres:12.4
+    env_file:
+      - database.env
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/1-schema.sql
+      - db-data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    networks:
+      - dehtwork
+    restart: unless-stopped
+
+volumes:
+  db-data:
+
+networks:
+  dehtwork:

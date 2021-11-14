@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model channels {
+  server   String   @db.VarChar(20)
+  channel  String   @id(map: "channels_pk") @unique(map: "channels_channel_uindex") @db.VarChar(20)
+  register DateTime @db.Timestamp(6)
+  active   Boolean  @default(true)
+  games    games[]
+}
+
+model games {
+  channel  String   @db.VarChar(20)
+  product  String   @db.VarChar(255)
+  week     DateTime @db.Date
+  channels channels @relation(fields: [channel], references: [channel], onDelete: Cascade, map: "games_channels_channel_fk")
+
+  @@id([channel, product, week], map: "games_pk")
+  @@unique([channel, product, week], map: "games_channel_product_week_uindex")
+}
