@@ -12,9 +12,9 @@ class Bot {
     });
   }
 
-  start() {
+  async start() {
     dotenv.config();
-    this.client.login(process.env.TOKEN);
+    await this.client.login(process.env.TOKEN);
     getFreeEpicGames(this.client);
   }
 

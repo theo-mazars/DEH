@@ -23,7 +23,7 @@ const getGamesCollection = async (channel) => {
 };
 
 const getFreeEpicGames = async (Client) => {
-  cron.schedule("5 17 * * *", async () => {
+  cron.schedule("5 16 * * *", async () => {
     const channels = await getChannelsCollection();
     const freeGame = await axios.get(
       "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=fr&country=FR&allowCountries=FR"
@@ -36,6 +36,14 @@ const getFreeEpicGames = async (Client) => {
     const games = data.Catalog.searchStore.elements;
 
     games.forEach((game) => {
+      if (
+        !game.customAttributes.find((attr) => {
+          return attr.key === "com.epicgames.app.freegames.vault.slug";
+        }) ||
+        game.productSlug === "[]"
+      )
+        return;
+
       const startDate =
         game?.promotions?.promotionalOffers[0]?.promotionalOffers[0]
           ?.startDate || null;
@@ -43,9 +51,10 @@ const getFreeEpicGames = async (Client) => {
         game?.promotions?.promotionalOffers[0]?.promotionalOffers[0]?.endDate ||
         null;
 
+      const prices = game.price;
       if (
-        game.price.totalPrice.discountPrice > 0 ||
-        game.price.totalPrice.originalPrice === 0
+        prices.totalPrice.discountPrice > 0 ||
+        prices.totalPrice.originalPrice
       )
         return;
 
@@ -55,28 +64,30 @@ const getFreeEpicGames = async (Client) => {
           name: "New Epic Games Event",
           icon_url:
             "https://cdn.pixabay.com/photo/2016/12/23/07/00/game-1926905_1280.png",
-          url: `https://www.epicgames.com/store/fr/p/${game.productSlug}`,
+          url: `https://www.epicgames.com/store/fr/p/${
+            game.productSlug || game.urlSlug
+          }`,
         },
         title: `Epic Free Game: ${game.title}`,
         description:
-          game.price.totalPrice.originalPrice &&
-          game.price.totalPrice.originalPrice === game.price.totalPrice.discount
+          prices.totalPrice.originalPrice &&
+          prices.totalPrice.originalPrice === prices.totalPrice.discount
             ? `The Vault Is Open: Claim ${
                 game.title
               } for **FREE** until **${monthDayFormat(endDate)}**!`
             : `A new free game appeared on the Epic Games Store!`,
         fields: [
-          {
+          prices.totalPrice.originalPrice && {
             name: "Price",
-            value: game.price.totalPrice.originalPrice
-              ? `~~${game.price.totalPrice.originalPrice / 100}€~~ **${
-                  (game.price.totalPrice.originalPrice -
-                    game.price.totalPrice.discount) /
+            value: prices.totalPrice.originalPrice
+              ? `~~${prices.totalPrice.originalPrice / 100}€~~ **${
+                  (prices.totalPrice.originalPrice -
+                    prices.totalPrice.discount) /
                   100
                 }€**`
               : `**${
-                  (game.price.totalPrice.originalPrice -
-                    game.price.totalPrice.discount) /
+                  (prices.totalPrice.originalPrice -
+                    prices.totalPrice.discount) /
                   100
                 }€**`,
             inline: true,
@@ -115,8 +126,9 @@ const getFreeEpicGames = async (Client) => {
         )
           return;
 
+        console.log(channel);
         const targetChannel = Client.channels.cache.get(channel);
-
+        console.log(Client.channels);
         targetChannel
           .send({
             embeds: [embed],
