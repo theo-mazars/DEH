@@ -12,6 +12,7 @@ model channels {
   channel  String   @id(map: "channels_pk") @unique(map: "channels_channel_uindex") @db.VarChar(20)
   register DateTime @db.Timestamp(6)
   active   Boolean  @default(true)
+  roles    roles[]
   games    games[]
 }
 
@@ -23,4 +24,11 @@ model games {
 
   @@id([channel, product, week], map: "games_pk")
   @@unique([channel, product, week], map: "games_channel_product_week_uindex")
+}
+
+model roles {
+  id       String   @id(map: "roles_pk") @unique(map: "roles_id_uindex") @db.VarChar(20)
+  active   Boolean  @default(true)
+  channel  String   @db.VarChar(20)
+  channels channels @relation(fields: [channel], references: [channel], onDelete: Cascade, map: "roles_channels_channel_fk")
 }
