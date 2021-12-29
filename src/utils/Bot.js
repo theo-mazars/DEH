@@ -3,7 +3,7 @@ import { readdirSync } from "fs";
 import dotenv from "dotenv";
 
 import { initCommands } from "../commands/init.js";
-import getFreeEpicGames from "../features/getFreeEpicGames.js";
+import getFreeEpicGames, { gameFetcher } from "../features/getFreeEpicGames.js";
 
 class Bot {
   constructor() {
@@ -16,6 +16,7 @@ class Bot {
     dotenv.config();
     await this.client.login(process.env.TOKEN);
     getFreeEpicGames(this.client);
+    gameFetcher(this.client);
   }
 
   get commands() {

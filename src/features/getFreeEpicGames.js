@@ -117,105 +117,109 @@ const getGamesCollection = async (channel) => {
   return query.map((game) => game.product);
 };
 
+export const gameFetcher = async (Client) => {
+  const channels = await getChannelsCollection();
+  const freeGames = await fetchFreeGames();
+  if (!freeGames) return;
+
+  const games = await Promise.all(
+    freeGames.map(async (game) => {
+      return await formatGame(game);
+    })
+  );
+
+  games.forEach((game) => {
+    const embed = new MessageEmbed({
+      type: "rich",
+      title: `${game.title} - Epic Games`,
+      description: `**Hold on!** Epic Games just set Neon Abyss for **FREE** on the Epic Games Store until **${monthDayFormat(
+        new Date(game.endDate)
+      )}**!`,
+      color: 0x9dfe89,
+      fields: [
+        {
+          name: "Genres",
+          value: game.genres.map((g) => `\`${g}\``).join(" "),
+          inline: true,
+        },
+        {
+          name: "Features",
+          value: game.features.map((g) => `\`${g}\``).join(" "),
+          inline: true,
+        },
+      ].reduce((acc, cur) => (cur.value ? [...acc, cur] : acc), []),
+      image: {
+        url: game.image,
+      },
+      footer: {
+        text: "Until",
+      },
+      timestamp: new Date(game.endDate),
+      url: game.url,
+    });
+
+    [...channels].forEach(async (channel) => {
+      const previousGames = await getGamesCollection(channel);
+      if (previousGames.find((pGame) => pGame === game.slug)) return;
+
+      const targetChannel = Client.channels.cache.get(channel);
+      targetChannel
+        .send({
+          embeds: [embed],
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  style: 1,
+                  label: `${game.price.originalPrice / 100}€`,
+                  custom_id: `row_0_button_0`,
+                  disabled: true,
+                  type: 2,
+                },
+                {
+                  style: 3,
+                  label: `FREE`,
+                  custom_id: `row_0_button_1`,
+                  disabled: false,
+                  type: 2,
+                },
+                {
+                  type: 2,
+                  style: 5,
+                  label: "Buy for free",
+                  url: game.url,
+                },
+              ],
+            },
+          ],
+          allowed_mentions: {
+            replied_user: false,
+            parse: ["roles"],
+            roles: ["Epic Mentions"],
+          },
+        })
+        .then(async () => {
+          await prisma.games.create({
+            data: {
+              channel,
+              product: game.slug,
+              week: new Date(game.endDate).toISOString(),
+            },
+          });
+
+          const role = await prisma.roles.findFirst({
+            where: { channel: targetChannel.id },
+          });
+          if (role) (await targetChannel.send(`<@&${role.id}>`)).delete(50);
+        });
+    });
+  });
+};
+
 const getFreeEpicGames = async (Client) => {
   cron.schedule("5 16 * * *", async () => {
-    const channels = await getChannelsCollection();
-    const freeGames = await fetchFreeGames();
-    if (!freeGames) return;
-
-    const games = await Promise.all(
-      freeGames.map(async (game) => {
-        return await formatGame(game);
-      })
-    );
-
-    games.forEach((game) => {
-      const embed = new MessageEmbed({
-        type: "rich",
-        title: `${game.title} - Epic Games`,
-        description: `**Hold on!** Epic Games just set Neon Abyss for **FREE** on the Epic Games Store until **${monthDayFormat(
-          new Date(game.endDate)
-        )}**!`,
-        color: 0x9dfe89,
-        fields: [
-          {
-            name: "Genres",
-            value: game.genres.map((g) => `\`${g}\``).join(" "),
-            inline: true,
-          },
-          {
-            name: "Features",
-            value: game.features.map((g) => `\`${g}\``).join(" "),
-            inline: true,
-          },
-        ],
-        image: {
-          url: game.image,
-        },
-        footer: {
-          text: "Until",
-        },
-        timestamp: new Date(game.endDate),
-        url: game.url,
-      });
-
-      [...channels].forEach(async (channel) => {
-        const previousGames = await getGamesCollection(channel);
-        if (previousGames.find((pGame) => pGame === game.slug)) return;
-
-        const targetChannel = Client.channels.cache.get(channel);
-        targetChannel
-          .send({
-            embeds: [embed],
-            components: [
-              {
-                type: 1,
-                components: [
-                  {
-                    style: 1,
-                    label: `${game.price.originalPrice / 100}€`,
-                    custom_id: `row_0_button_0`,
-                    disabled: true,
-                    type: 2,
-                  },
-                  {
-                    style: 3,
-                    label: `FREE`,
-                    custom_id: `row_0_button_1`,
-                    disabled: false,
-                    type: 2,
-                  },
-                  {
-                    type: 2,
-                    style: 5,
-                    label: "Buy for free",
-                    url: game.url,
-                  },
-                ],
-              },
-            ],
-            allowed_mentions: {
-              replied_user: false,
-              parse: ["roles"],
-              roles: ["Epic Mentions"],
-            },
-          })
-          .then(async () => {
-            await prisma.games.create({
-              data: {
-                channel,
-                product: game.slug,
-                week: new Date(game.endDate).toISOString(),
-              },
-            });
-
-            const role = await prisma.roles.findFirst({
-              where: { channel: targetChannel.id },
-            });
-            if (role) (await targetChannel.send(`<@&${role.id}>`)).delete(50);
-          });
-      });
-    });
+    gameFetcher(Client);
   });
 };
 
