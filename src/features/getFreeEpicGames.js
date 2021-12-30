@@ -13,11 +13,21 @@ const fetchFreeGames = async () => {
 
   if (freeGamesAPI.status !== 200) return;
 
+  // games = freeGamesAPI.data.data.Catalog.searchStore.elements.map((game) => {
+  //   console.log(game.title);
+  //   console.log(`> ${JSON.stringify(game.customAttributes)}`);
+  // });
   return freeGamesAPI.data.data.Catalog.searchStore.elements.filter(
     (games) =>
-      games.customAttributes?.find(
-        ({ key }) => key === "com.epicgames.app.freegames.vault.slug"
-      ) && games.productSlug !== "[]"
+      games?.price?.lineOffers?.find(({ appliedRules }) => {
+        return (
+          new Date(
+            appliedRules[0]?.endDate || new Date().toISOString()
+          ).getTime() > new Date().getTime() &&
+          games?.price?.totalPrice?.discount ===
+            games?.price?.totalPrice?.originalPrice
+        );
+      }) && games.productSlug !== "[]"
   );
 };
 
